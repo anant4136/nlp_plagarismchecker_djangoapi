@@ -10,7 +10,7 @@ urlpatterns = [
          views.ChangePasswordView.as_view(), name='change-password'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('submit_paper/', views.Submit_paper.as_view()),
-    #     path('store/<int:pk>/', views.BookDetail.as_view()),
+    path('show_paper/', views.Show_paper.as_view()),
     path('check_result/', views.Check_result.as_view()),
     path('token/', auth_views.obtain_auth_token)
 ]
