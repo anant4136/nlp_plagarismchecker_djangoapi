@@ -105,7 +105,7 @@ class Check_result(APIView):
             users = User.objects.filter(class_num=class_num)
 
             data = Paper.objects.filter(user__in=users)
-            filenames = [p.paper.name for p in data]
+            filenames = [p.paper.name for p in data[::-1]]
             plag = []
             result = check_plagiarism(filenames, plag)
             return JsonResponse(result, safe=False)
@@ -116,10 +116,15 @@ class Check_result(APIView):
 class Show_paper(APIView):
     permission_classes = [AllowAny]
 
-    def get_queryset(self, request):
+    def get(self, request):
         if self.request.user.is_staff == True:
             class_num = request.query_params.get('class_num')
-            return Paper.objects.filter(user__class_num=class_num)
+            users = User.objects.filter(class_num=class_num)
+            data = Paper.objects.filter(user__in=users)
+            serializer = PaperSerializer(data, many=True)
+            return Response(serializer.data)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 def check_plagiarism(data, plag):
@@ -155,10 +160,12 @@ def check_plagiarism(data, plag):
 
             if similarity > 0.8:
                 count += similarity
-                result = f"Plagiarism,{doc_files[i]},{doc_files[j]},{similarity:.2f}"
+                score = (num_docs-i)/similarity
+                result = f"Plagiarism,{doc_files[i]},{doc_files[j]},{similarity:.2f},{score:.2f}"
             else:
-                result = f"No,{doc_files[i]} and {doc_files[j]} with similarity {similarity:.2f}"
+                score = (num_docs-i)/similarity
+                result = f"No,{doc_files[i]},{doc_files[j]},{similarity:.2f},{score:.2f}"
             results.append(result)
         plag.append(count)
 
-    return plag
+    return results

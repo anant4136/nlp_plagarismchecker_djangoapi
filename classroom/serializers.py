@@ -23,16 +23,16 @@ class PaperDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Paper
-        fields = ('id', 'user', 'paper')
-        read_only_fields = ['id', 'user']
+        fields = ('id', 'user', 'paper', 'time')
+        read_only_fields = ['id', 'user', 'time']
 
 
 class PaperSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Paper
-        fields = ('id', 'user', 'paper')
-        read_only_fields = ['id', 'user']
+        fields = ('id', 'user', 'paper', 'time')
+        read_only_fields = ['id', 'user', 'time']
 
 
 class ChangePasswordSerializer(serializers.Serializer):

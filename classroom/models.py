@@ -25,6 +25,7 @@ class Paper(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
     paper = models.FileField(upload_to='paper/')
+    time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.paper.name
