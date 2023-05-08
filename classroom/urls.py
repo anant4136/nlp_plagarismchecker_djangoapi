@@ -12,5 +12,6 @@ urlpatterns = [
     path('submit_paper/', views.Submit_paper.as_view()),
     path('show_paper/', views.Show_paper.as_view()),
     path('check_result/', views.Check_result.as_view()),
+    path('check_answers/', views.Check_answers.as_view()),
     path('token/', auth_views.obtain_auth_token)
 ]

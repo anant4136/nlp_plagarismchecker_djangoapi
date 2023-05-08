@@ -90,31 +90,11 @@ class Submit_paper(generics.ListCreateAPIView):
         return Paper.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        if self.request.user.is_staff == False:
-            serializer.save(user=self.request.user)
-
-
-class Check_result(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        if self.request.user.is_staff == True:
-            class_num = request.query_params.get('class_num')
-            if not class_num:
-                return Response([])
-            users = User.objects.filter(class_num=class_num)
-
-            data = Paper.objects.filter(user__in=users)
-            filenames = [p.paper.name for p in data[::-1]]
-            plag = []
-            result = check_plagiarism(filenames, plag)
-            return JsonResponse(result, safe=False)
-        else:
-            return JsonResponse(status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(user=self.request.user)
 
 
 class Show_paper(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         if self.request.user.is_staff == True:
@@ -125,6 +105,45 @@ class Show_paper(APIView):
             return Response(serializer.data)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class Check_result(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if self.request.user.is_staff == True:
+            class_num = request.query_params.get('class_num')
+
+            if not class_num:
+                return Response([])
+            users = User.objects.filter(class_num=class_num, is_staff=False)
+
+            data = Paper.objects.filter(user__in=users, user__is_staff=False)
+            filenames = [p.paper.name for p in data[::-1]]
+            plag = []
+            result = check_plagiarism(filenames, plag)
+            return JsonResponse(result, safe=False)
+        else:
+            return JsonResponse(status=status.HTTP_400_BAD_REQUEST)
+
+
+class Check_answers(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if self.request.user.is_staff == True:
+            class_num = self.request.user.class_num
+            users = User.objects.filter(class_num=class_num, is_staff=False)
+
+            data1 = Paper.objects.filter(user__in=users, user__is_staff=False)
+            data2 = Paper.objects.filter(user=self.request.user)
+            filenames = [p.paper.name for p in data1[::-1]]
+            filename = [p.paper.name for p in data2[::-1]]
+            plag = []
+            result = score_answers(filenames, filename)
+            return JsonResponse(result, safe=False)
+        else:
+            return JsonResponse(status=status.HTTP_400_BAD_REQUEST)
 
 
 def check_plagiarism(data, plag):
@@ -167,5 +186,38 @@ def check_plagiarism(data, plag):
                 result = f"No,{doc_files[i]},{doc_files[j]},{similarity:.2f},{score:.2f}"
             results.append(result)
         plag.append(count)
+
+    return results
+
+
+def score_answers(data1, data2):
+
+    path = '''C:/Users/Rog/OneDrive/Desktop/ml practical/project_api/plagiarism_classroom/paper/'''
+    doc_files = data1 + data2
+    num_docs = len(doc_files)
+    if num_docs < 2:
+        return "Not enough documents to compare for plagiarism."
+
+    docs = []
+
+    for file in doc_files:
+        f_name = file.split('/')[-1]
+        document = Document(path+f_name)
+        full_text = []
+        for para in document.paragraphs:
+            full_text.append(para.text)
+        doc_text = '\n'.join(full_text)
+        docs.append(doc_text)
+
+    vectorizer = TfidfVectorizer(stop_words='english')
+    doc_vectors = vectorizer.fit_transform(docs)
+    similarities = cosine_similarity(doc_vectors)
+
+    results = []
+
+    for j in range(num_docs-1):
+        similarity = similarities[j][num_docs-1]
+        result = f"score,{doc_files[j]},{doc_files[num_docs-1]},{similarity:.2f}"
+        results.append(result)
 
     return results
